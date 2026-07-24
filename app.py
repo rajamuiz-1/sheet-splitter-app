@@ -5,7 +5,8 @@ import gspread
 # ---------------------------------------------------------
 # Streamlit UI
 # ---------------------------------------------------------
-st.set_page_config(page_title="MRO Taskcard Separator", page_icon="✈️", layout="wide")
+# FIXED: Changed layout back to "centered" so it doesn't stretch too wide
+st.set_page_config(page_title="MRO Taskcard Separator", page_icon="✈️", layout="centered")
 st.title("✈️ MRO Taskcard Separator")
 st.write("Paste your Google Sheet link below to automatically generate the dynamic Taskcard tab.")
 
@@ -13,7 +14,6 @@ sheet_url = st.text_input("Google Sheet URL:", placeholder="https://docs.google.
 
 # ---------------------------------------------------------
 # 1. OPTIMIZATION: Cache the Google Connection
-# This prevents the app from re-authenticating every time you click a button.
 # ---------------------------------------------------------
 @st.cache_resource
 def get_google_client():
@@ -21,6 +21,7 @@ def get_google_client():
         creds_dict = dict(st.secrets["gcp_service_account"])
         return gspread.service_account_from_dict(creds_dict)
     else:
+        # Fallback for local testing only
         return gspread.oauth(
             credentials_filename='client_secret.json',
             authorized_user_filename='authorized_user.json'
@@ -75,7 +76,7 @@ if st.button("Process Taskcards"):
                         cols="20"
                     )
 
-                # OPTIMIZATION: Explicitly declare the starting cell (A1) for faster updates
+                # Explicitly declare the starting cell (A1) for faster updates
                 payload = [taskcard_df.columns.values.tolist()] + taskcard_df.values.tolist()
                 taskcard_tab.update(values=payload, range_name="A1")
 
@@ -84,4 +85,5 @@ if st.button("Process Taskcards"):
             except gspread.exceptions.WorksheetNotFound:
                 st.error("❌ Error: Could not find a tab named 'Tasklisting + Workcard' in this Google Sheet.")
             except Exception as e:
-                st.error(f"❌ An error occurred: {e}")
+                # FIXED: Added repr() so the error message is visible instead of blank
+                st.error(f"❌ An error occurred: {repr(e)}")
